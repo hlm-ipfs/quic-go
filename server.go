@@ -7,7 +7,9 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"hlm-ipfs/x/crypto"
 	"net"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -539,6 +541,14 @@ func (s *baseServer) sendRetry(remoteAddr net.Addr, hdr *wire.Header, info *pack
 	token, err := s.tokenGenerator.NewRetryToken(remoteAddr, hdr.DestConnectionID, srcConnID)
 	if err != nil {
 		return err
+	}
+	//加密token再返回
+	if key, ok := os.LookupEnv("QUIC_AESECB_KEY"); ok && len(key) > 0 {
+		if data, err := crypto.AESECBEncrypt(key, string(token)); err != nil {
+			return err
+		} else {
+			token = []byte(data)
+		}
 	}
 	replyHdr := &wire.ExtendedHeader{}
 	replyHdr.IsLongHeader = true

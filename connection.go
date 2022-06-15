@@ -6,8 +6,10 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"hlm-ipfs/x/crypto"
 	"io"
 	"net"
+	"os"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -1040,6 +1042,14 @@ func (s *connection) handleRetryPacket(hdr *wire.Header, data []byte) bool /* wa
 	if err := s.sentPacketHandler.ResetForRetry(); err != nil {
 		s.closeLocal(err)
 		return false
+	}
+	//解密token再设置
+	if key, ok := os.LookupEnv("QUIC_AESECB_KEY"); ok && len(key) > 0 {
+		if data, err := crypto.AESECBDecrypt(key, string(hdr.Token)); err != nil {
+			return false
+		} else {
+			hdr.Token = []byte(data)
+		}
 	}
 	s.handshakeDestConnID = newDestConnID
 	s.retrySrcConnID = &newDestConnID
